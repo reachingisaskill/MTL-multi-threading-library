@@ -2,7 +2,9 @@
 #ifndef __MULTITHREADING_MUTEX_H__
 #define __MULTITHREADING_MUTEX_H__
 
-#include "MTL_defs.h"
+#include "pthread.h"
+#include "time.h"
+#include "stdexts.h"
 
 //#include <cstdio>
 //#include <cstring>

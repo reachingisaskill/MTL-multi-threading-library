@@ -2,7 +2,6 @@
 #ifndef __STDEXTS__MULTI_THREADED_QUEUE_H__
 #define __STDEXTS__MULTI_THREADED_QUEUE_H__
 
-#include "MTL_defs.h"
 #include "MTL_mutex.h"
 
 

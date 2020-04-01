@@ -2,9 +2,10 @@
 #ifndef __STDEXTS__MULTITHREADED_LINKED_LIST_H__
 #define __STDEXTS__MULTITHREADED_LINKED_LIST_H__
 
+#include "pthread.h"
+#include "time.h"
 #include "stdexts.h"
 
-#include "MTL_defs.h"
 #include "MTL_mutex.h"
 
 //#define DISABLE_PTHREAD

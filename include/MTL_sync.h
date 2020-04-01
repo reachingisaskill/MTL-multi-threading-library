@@ -2,8 +2,6 @@
 #ifndef __MTL__SYNC_H__
 #define __MTL__SYNC_H__
 
-
-#include "MTL_defs.h"
 #include "MTL_mutex.h"
 
 
