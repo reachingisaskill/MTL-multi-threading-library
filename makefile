@@ -42,6 +42,7 @@ LIB_DIR = lib
 TMP_DIR = .temp
 
 EXE_SRC_DIR = ${SRC_DIR}
+#EXE_SRC_DIR = exec
 
 
 # Library Name
@@ -204,5 +205,5 @@ check_install :
 		echo "  INSTALLATION DIRECTORY NOT SET" ;\
 		echo                                    ;\
 		exit 1                                  ;\
-		fi
+	fi
 
