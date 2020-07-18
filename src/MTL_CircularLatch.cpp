@@ -10,9 +10,8 @@ namespace MTL
 ////////////////////////////////////////////////////////////////////////////////////////////////////
   // CircularLatch::ListItem Member function definitions
 
-  CircularLatch::ListItem::ListItem( std::mutex& m, std::thread::id id, ListItem* n, AtomicThreadID& thread ) :
+  CircularLatch::ListItem::ListItem( std::thread::id id, ListItem* n, AtomicThreadID& thread ) :
     _id( id ),
-    _theMutex( m ),
     _next( n ),
     _currentThread( thread )
   {
@@ -21,8 +20,6 @@ namespace MTL
 
   CircularLatch::ListItem::~ListItem()
   {
-    // Possible to destroy object whilst owning a mutex in owning thread.
-    // I don't think I can protect against it very easily.
     // Hopefully the user isn't an idiot...
   }
 
@@ -38,20 +35,11 @@ namespace MTL
   {
     // Wait until it's our turn
     while ( _currentThread.load( std::memory_order_relaxed ) != _id );
-
-    // Wait until its successful
-//    while ( ! _theMutex.try_lock() );
-
-    // Once the thread variable is updated this must be available!
-    _theMutex.lock();
   }
 
 
   void CircularLatch::ListItem::pass()
   {
-    // Release the mutex
-    _theMutex.unlock();
-
     // Store the next thread id in the current thread variable
     _currentThread.store( _next->_id, std::memory_order_relaxed );
   }
@@ -96,7 +84,6 @@ namespace MTL
   // CircularLatch Member function definitions
 
   CircularLatch::CircularLatch( unsigned int N ) :
-    _theMutex(),
     _currentThread(),
     _listMutex(),
     _totalHandles( N ),
@@ -109,13 +96,15 @@ namespace MTL
 
   CircularLatch::~CircularLatch()
   {
+    std::cout << "Destructing" << std::endl;
     if ( _listEnd != nullptr )
     {
-      ListItem* current = _listEnd->next();
+      ListItem* current = _listEnd;
       do
       {
         ListItem* next = current->next();
         delete current;
+        std::cout << " delete " << std::endl;
         current = next;
       }
       while ( current != _listEnd );
@@ -123,24 +112,28 @@ namespace MTL
   }
 
 
-  CircularLatch::Handle CircularLatch::requestHandle()
+  CircularLatch::Handle CircularLatch::requestHandle( unsigned int handleNumber )
   {
     // Lock access to the list
     std::unique_lock< std::mutex > lock( _listMutex );
 
+    // Wait until the number of handles equals the requested handleNumber
+    _startCondition.wait( lock, [this, handleNumber]()->bool{ return ( this->_currentNumberHandles == handleNumber ); } );
+
+
+    // Unique thread identifier
     std::thread::id id = std::this_thread::get_id();
 
     // Create and append the new list item
-    ListItem* newItem;
     if ( _listEnd == nullptr )
     {
-      newItem = new ListItem( _theMutex, id, nullptr, _currentThread );
+      ListItem* newItem = new ListItem( id, nullptr, _currentThread );
       _listEnd = newItem->append( newItem );
       _currentThread = id;
     }
     else
     {
-      newItem = new ListItem( _theMutex, id, _listEnd->next(), _currentThread );
+      ListItem* newItem = new ListItem( id, _listEnd->next(), _currentThread );
       _listEnd = _listEnd->append( newItem );
     }
 
@@ -152,30 +145,29 @@ namespace MTL
 
     std::cout << "NUMBER = " << _currentNumberHandles << std::endl;
 
-    // If that's all, we notify the condition variable
-    if ( _currentNumberHandles == _totalHandles )
-    {
-      lock.unlock();
-      _startCondition.notify_all();
-    }
-    else
-    {
-      lock.unlock();
-    }
+    // Notify the update
+    _startCondition.notify_all();
 
-    // Return the handle as an rvalue
-    return handle; 
-  }
-
-
-  void CircularLatch::wait()
-  {
-    // Wait for the start condition to be reached
-    std::unique_lock< std::mutex > lock( _listMutex );
+    // If that's all, we notify the condition variable, otherwise we wait on it.
     _startCondition.wait( lock, [this]() -> bool { return (this->_currentNumberHandles == this->_totalHandles); } );
+    std::cout << "GO : " << handleNumber << std::endl;
     lock.unlock();
 
-    std::cout << "GO!" << std::endl;
+//    // If that's all, we notify the condition variable, otherwise we wait on it.
+//    if ( _currentNumberHandles == _totalHandles )
+//    {
+//      std::cout << "GO : " << handleNumber << std::endl;
+//      lock.unlock();
+//    }
+//    else
+//    {
+//      _startCondition.wait( lock, [this]() -> bool { return (this->_currentNumberHandles == this->_totalHandles); } );
+//      std::cout << "GO : " << handleNumber << std::endl;
+//      lock.unlock();
+//    }
+
+    // Return the handle
+    return handle; 
   }
 
 }

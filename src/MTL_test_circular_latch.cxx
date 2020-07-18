@@ -9,7 +9,7 @@
 
 using namespace MTL;
 
-const int NUMBER_ITERATIONS = 1000;
+const int NUMBER_ITERATIONS = 10;
 const int NUMBER_THREADS = 4;
 
 std::vector< int > theVector;
@@ -55,15 +55,13 @@ void thread( int N )
 {
   CircularLatch& latch = getLatch();
 
-  CircularLatch::Handle handle = latch.requestHandle();
-
-  latch.wait();
+  CircularLatch::Handle handle = latch.requestHandle( N );
 
   for ( int i = 0; i < NUMBER_ITERATIONS; ++i )
   {
     handle.lock();
     theVector.push_back( N );
-    std::cout << N << std::endl;
+//    std::cout << N << std::endl;
     handle.unlock();
   }
 

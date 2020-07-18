@@ -10,6 +10,12 @@
 namespace MTL
 {
 
+  /*
+   * Uses a semaphore to emulate a latching mutex.
+   * Threads are blocked and released in the order they are assigned.
+   * This ensures that the shared data object is always acted on by the threads in the
+   * same order.
+   */
   class CircularLatch
   {
     // Make it a signleton - same as the mutex objects
@@ -34,9 +40,6 @@ namespace MTL
           // Unique identifier for the owning thread
           const std::thread::id _id;
 
-          // Reference to the mutex in question
-          std::mutex& _theMutex;
-
           // Pointer to the next item in the list
           ListItem* _next;
 
@@ -45,7 +48,7 @@ namespace MTL
 
         public:
           // Construction
-          ListItem( std::mutex&, std::thread::id, ListItem*, AtomicThreadID& );
+          ListItem( std::thread::id, ListItem*, AtomicThreadID& );
 
           // Destruction
           ~ListItem();
@@ -63,7 +66,7 @@ namespace MTL
           void pass();
 
           // Returns true if this ListItem owns a locked mutex
-          bool ownsMutex() const;
+          bool ownsMutex() const { return  (_currentThread == _id); }
 
       };
 
@@ -98,9 +101,6 @@ namespace MTL
 
 
     private :
-      // The primary mutex that controls access to the primary data 
-      std::mutex _theMutex;
-
       // Atomic variable that records which thread has control
       AtomicThreadID _currentThread;
 
@@ -126,12 +126,9 @@ namespace MTL
       // Destructor
       ~CircularLatch();
 
-      // Request a handle to the latch
-      // Order of latching threads is defined by the order in which this function is called
-      Handle requestHandle();
+      // Request a numbered handle to the latch and waits for configuration to complete
+      Handle requestHandle( unsigned int );
 
-      // Waits on a condition variable until the expected number of handles have been requested.
-      void wait();
   };
 
 
