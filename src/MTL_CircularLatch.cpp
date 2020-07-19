@@ -1,8 +1,6 @@
 
 #include "MTL_CircularLatch.h"
 
-#include <iostream>
-
 
 namespace MTL
 {
@@ -96,7 +94,6 @@ namespace MTL
 
   CircularLatch::~CircularLatch()
   {
-    std::cout << "Destructing" << std::endl;
     if ( _listEnd != nullptr )
     {
       ListItem* current = _listEnd;
@@ -104,7 +101,6 @@ namespace MTL
       {
         ListItem* next = current->next();
         delete current;
-        std::cout << " delete " << std::endl;
         current = next;
       }
       while ( current != _listEnd );
@@ -143,26 +139,22 @@ namespace MTL
     // Increment the counter
     _currentNumberHandles += 1;
 
-    std::cout << "NUMBER = " << _currentNumberHandles << std::endl;
 
     // Notify the update
     _startCondition.notify_all();
 
     // If that's all, we notify the condition variable, otherwise we wait on it.
     _startCondition.wait( lock, [this]() -> bool { return (this->_currentNumberHandles == this->_totalHandles); } );
-    std::cout << "GO : " << handleNumber << std::endl;
     lock.unlock();
 
 //    // If that's all, we notify the condition variable, otherwise we wait on it.
 //    if ( _currentNumberHandles == _totalHandles )
 //    {
-//      std::cout << "GO : " << handleNumber << std::endl;
 //      lock.unlock();
 //    }
 //    else
 //    {
 //      _startCondition.wait( lock, [this]() -> bool { return (this->_currentNumberHandles == this->_totalHandles); } );
-//      std::cout << "GO : " << handleNumber << std::endl;
 //      lock.unlock();
 //    }
 
